@@ -102,8 +102,8 @@ class Webhook extends CI_Controller {
 				if($this->user['state'] == 3)
 				{
 					$this->line_model->pushStickerMessage($this->user['uid'], 1, 403);
-					$this->line_model->pushTextMessage($this->user['uid'], "Nani!!!! Bisa Langsung Kejawab?!😱😱😱😱😱😱😱😱😱");
-					$this->line_model->pushTextMessage($user['uid'], "😡😡😡OTW laporan ini mah sama pembuat bot, Ikhsan Andriyawan soalnya terlalu mudah Langsung kejawab lohhhh sama kak {$user['nama']}, ini!");
+					$this->line_model->pushTextMessage($this->user['uid'], "Nani!!!! Bisa Langsung Kejawab DOONG?!😱😱😱😱😱😱😱😱😱");
+					$this->line_model->pushTextMessage($this->user['uid'], "😡😡😡OTW laporan ini mah sama pembuat bot, Ikhsan Andriyawan soalnya terlalu mudah Langsung kejawab lohhhh sama kak {$this->user['nama']}, ini!");
 				} else if($this->user['state'] == 2) {
 					$this->line_model->pushStickerMessage($this->user['uid'], 1, 13);
 					$this->line_model->pushTextMessage($this->user['uid'], "Hah, yah ketebak dahh😂. Kali ini jawaban kakak BENAR.");
