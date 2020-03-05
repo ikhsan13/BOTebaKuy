@@ -106,10 +106,10 @@ class Webhook extends CI_Controller {
 					$this->line_model->pushTextMessage($this->user['uid'], "😡😡😡OTW laporan ini mah sama pembuat bot, Ikhsan Andriyawan soalnya terlalu mudah Langsung kejawab lohhhh sama kak {$user['nama']} ini");
 				} else if($this->user['state'] == 2) {
 					$this->line_model->pushStickerMessage($this->user['uid'], 1, 13);
-					$this->line_model->pushTextMessage($this->user['uid'], "Hah, yah ketebak dahh😂. Kali ini jawaban kak {$user['nama']} BENAR.");
+					$this->line_model->pushTextMessage($this->user['uid'], "Hah, yah ketebak dahh😂. Kali ini jawaban kak {$this->user['nama']} BENAR.");
 				} else {
 					$this->line_model->pushStickerMessage($this->user['uid'], 2, 525);
-					$this->line_model->pushTextMessage($this->user['uid'], "https://media.giphy.com/media/xT1R9Lmgd4zFJ0MO6A/giphy.gif", "Yeaaaaaayyyyy Sampai Terharuuu aku, akhirnya bener jugakkk! Selamattttt!");
+					$this->line_model->pushTextMessage($this->user['uid'], "{https://media.giphy.com/media/xT1R9Lmgd4zFJ0MO6A/giphy.gif} Yeaaaaaayyyyy Sampai Terharuuu aku, akhirnya bener jugakkk! Selamattttt!");
 				}
 
 				// reset to 0
