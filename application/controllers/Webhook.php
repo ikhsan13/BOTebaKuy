@@ -16,7 +16,7 @@ class Webhook extends CI_Controller {
 
 		// if it is not POST request, just say hello
 		if ($_SERVER['REQUEST_METHOD'] !== 'POST')
-			die("Hi Guys. Service ready");
+			die("Hi Kak. Salam Kenal Aku Bot Buatan Ikhsan Andriyawan");
 
 		$body = file_get_contents('php://input');
 		$this->line_model->writeLog($body);
@@ -79,7 +79,8 @@ class Webhook extends CI_Controller {
 			// if message is not 'mulai'
 			if(strpos('mulai', $text) === FALSE)
 			{
-				$this->line_model->pushTextMessage($this->user['uid'], 'ketik "mulai" dulu, Gan :D');
+				$this->line_model->pushStickerMessage($this->user['uid'], 2, 152);
+				$this->line_model->pushTextMessage($this->user['uid'], 'ketik "mulai" atau klik tombol Mulai di MENU dulu Ya Kak😉');
 				return;
 
 			} else {
@@ -100,14 +101,15 @@ class Webhook extends CI_Controller {
 			{
 				if($this->user['state'] == 3)
 				{
-					$this->line_model->pushStickerMessage($this->user['uid'], 1, 3);
-					$this->line_model->pushTextMessage($this->user['uid'], "Hah? Kok bisa langsung kejawab?!");
+					$this->line_model->pushStickerMessage($this->user['uid'], 1, 403);
+					$this->line_model->pushTextMessage($this->user['uid'], "Nani!!!! Bisa Langsung Kejawab?!😱😱😱😱😱😱😱😱😱");
+					$this->line_model->pushTextMessage($this->user['uid'], "😡😡😡OTW laporan ini mah sama pembuat bot, Ikhsan Andriyawan soalnya terlalu mudah Langsung kejawab lohhhh sama kak {$user['nama']} ini");
 				} else if($this->user['state'] == 2) {
 					$this->line_model->pushStickerMessage($this->user['uid'], 1, 13);
-					$this->line_model->pushTextMessage($this->user['uid'], "Hmm.. lumayan. Kali ini jawabanmu benar.");
+					$this->line_model->pushTextMessage($this->user['uid'], "Hah, yah ketebak dahh😂. Kali ini jawaban kak {$user['nama']} BENAR.");
 				} else {
-					$this->line_model->pushStickerMessage($this->user['uid'], 1, 2);
-					$this->line_model->pushTextMessage($this->user['uid'], "Yeheeaaay, akhirnya bener juga! Selamat!");
+					$this->line_model->pushStickerMessage($this->user['uid'], 2, 525);
+					$this->line_model->pushTextMessage($this->user['uid'], "https://media.giphy.com/media/xT1R9Lmgd4zFJ0MO6A/giphy.gif", "Yeaaaaaayyyyy Sampai Terharuuu aku, akhirnya bener jugakkk! Selamattttt!");
 				}
 
 				// reset to 0
