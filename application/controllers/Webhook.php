@@ -1,207 +1,159 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
-
-use \LINE\LINEBot;
-use \LINE\LINEBot\HTTPClient\CurlHTTPClient;
-use \LINE\LINEBot\MessageBuilder\MultiMessageBuilder;
-use \LINE\LINEBot\MessageBuilder\TextMessageBuilder;
-use \LINE\LINEBot\MessageBuilder\StickerMessageBuilder;
-use \LINE\LINEBot\MessageBuilder\TemplateMessageBuilder;
-use \LINE\LINEBot\MessageBuilder\TemplateBuilder\ButtonTemplateBuilder;
-use \LINE\LINEBot\TemplateActionBuilder\MessageTemplateActionBuilder;
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Webhook extends CI_Controller {
 
-  private $bot;
-  private $events;
-  private $signature;
-  private $user;
+	private $user;
 
-  function __construct()
-  {
-    parent::__construct();
-    $this->load->model('tebakkode_m');
+	function __construct()
+	{
+		parent::__construct();
+		$this->load->model('line_model');
+	}
 
-    // create bot object
-    $httpClient = new CurlHTTPClient($_ENV['CHANNEL_ACCESS_TOKEN']);
-    $this->bot  = new LINEBot($httpClient, ['channelSecret' => $_ENV['CHANNEL_SECRET']]);
-  }
+	public function index()
+	{
 
-  public function index()
-  {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      echo "Hello Coders!";
-      header('HTTP/1.1 400 Only POST method allowed');
-      exit;
-    }
+		// if it is not POST request, just say hello
+		if ($_SERVER['REQUEST_METHOD'] !== 'POST')
+			die("Hi Guys. Service ready");
 
-    // get request
-    $body = file_get_contents('php://input');
-    $this->signature = isset($_SERVER['HTTP_X_LINE_SIGNATURE']) ? $_SERVER['HTTP_X_LINE_SIGNATURE'] : "-";
-    $this->events = json_decode($body, true);
+		$body = file_get_contents('php://input');
+		$this->line_model->writeLog($body);
+		
+		$bodyArray = json_decode($body, true);
+		$events = $bodyArray['events'];
 
-    // log every event requests
-    $this->tebakkode_m->log_events($this->signature, $body);
+		foreach ($events as $event) {
+			// $event['type']
+			// $event['replyToken']
+			// $event['source']['userId']
+			// $event['source']['type']
+			// $event['timestamp']
+			// $event['message']['type']
+			// $event['message']['id']
+			// $event['message']['text']
+			
+			// get userdata before doing any response
+			$this->user = $this->line_model->getUser($event['source']['userId']);
+			
+			// bila eventnya bertipe message
+			if($event['type'] == 'message') 
+			{
+				// if message is text
+				switch($event['message']['type'])
+				{
+					case 'text':
+						$this->responseTextMessage($event);
+						break;
+					case 'sticker':
+						$this->responseStickerMessage($event);
+						break;
+					// another case?
 
-    if(is_array($this->events['events'])){
-      foreach ($this->events['events'] as $event){
+					default: continue;
+				}
+			} 
 
-        // skip group and room event
-        if(! isset($event['source']['userId'])) continue;
+			// when user follow (add friend or unblock) the bot
+			else if($event['type'] == 'follow')
+			{
+				$this->responseFollowEvent($event);
+			}
 
-        // get user data from database
-        $this->user = $this->tebakkode_m->getUser($event['source']['userId']);
+			// when user unfollow (block friend) the bot
+			else if($event['type'] == 'unfollow')
+			{
+				echo $this->line_model->resetUser($this->user['uid']);
+			} 
+		}
+	}
 
-        // if user not registered
-        if(!$this->user) $this->followCallback($event);
-        else {
-          // respond event
-          if($event['type'] == 'message'){
-            if(method_exists($this, $event['message']['type'].'Message')){
-              $this->{$event['message']['type'].'Message'}($event);
-            }
-          } else {
-            if(method_exists($this, $event['type'].'Callback')){
-              $this->{$event['type'].'Callback'}($event);
-            }
-          }
-        }
+	function responseTextMessage($event)
+	{
+		$text = trim(strtolower($event['message']['text']));
 
-      } // end of foreach
-    }
+		// if user starting the game
+		if($this->user['state'] < 1)
+		{
+			// if message is not 'mulai'
+			if(strpos('mulai', $text) === FALSE)
+			{
+				$this->line_model->pushTextMessage($this->user['uid'], 'ketik "mulai" dulu, Gan :D');
+				return;
 
-     // debuging data
-    file_put_contents('php://stderr', 'Body: '.$body);
+			} else {
+				// update state to 3, means he start game and has 3 remain lives
+				$this->line_model->updateState($this->user['uid'], 3);
 
-  } // end of index.php
+				// generate the answer
+				$question = $this->line_model->generateAnswer($this->user['uid'], $this->user['next_question']);
 
-  private function followCallback($event){
-    $res = $this->bot->getProfile($event['source']['userId']);
-    if ($res->isSucceeded())
-    {
-      $profile = $res->getJSONDecodedBody();
+				// send question
+				$this->line_model->pushTextMessage($this->user['uid'], "Soal: " . $question['hint']);
+			}
+		}
 
-      // create welcome message
-      $message  = "Salam kenal, " . $profile['displayName'] . "!\n";
-      $message .= "Silakan kirim pesan \"MULAI\" untuk memulai kuis.";
-      $textMessageBuilder = new TextMessageBuilder($message);
+		// for next state, user has his own question placed in $this->user['answer']
+		else {
+			if($text == $this->user['answer'])
+			{
+				if($this->user['state'] == 3)
+				{
+					$this->line_model->pushStickerMessage($this->user['uid'], 1, 3);
+					$this->line_model->pushTextMessage($this->user['uid'], "Hah? Kok bisa langsung kejawab?!");
+				} else if($this->user['state'] == 2) {
+					$this->line_model->pushStickerMessage($this->user['uid'], 1, 13);
+					$this->line_model->pushTextMessage($this->user['uid'], "Hmm.. lumayan. Kali ini jawabanmu benar.");
+				} else {
+					$this->line_model->pushStickerMessage($this->user['uid'], 1, 2);
+					$this->line_model->pushTextMessage($this->user['uid'], "Yeheeaaay, akhirnya bener juga! Selamat!");
+				}
 
-      // create sticker message
-      $stickerMessageBuilder = new StickerMessageBuilder(1, 3);
+				// reset to 0
+				$this->line_model->updateState($this->user['uid'], 0);
+				$this->line_model->pushTextMessage($this->user['uid'], 'Mau coba lagi? Hmm kali ini aku akan kasih soal yang lebih sulit! Ketik "mulai" kapanpun Kamu siap. Kalo berani!');
 
-      // merge all message
-      $multiMessageBuilder = new MultiMessageBuilder();
-      $multiMessageBuilder->add($textMessageBuilder);
-      $multiMessageBuilder->add($stickerMessageBuilder);
+			} else {
+				if($this->user['state'] == 3)
+				{
+					$this->line_model->pushTextMessage($this->user['uid'], "Ow ow oww.. kurang tepat. Kesempatan menebak 2 kali lagi eaa");
+				} else if($this->user['state'] == 2) {
+					$this->line_model->pushTextMessage($this->user['uid'], "No. Masih salah. Ayo, satu kesempatan menebak lagi. Pikirkan baik-baik!");
+				} else {
+					$this->line_model->pushStickerMessage($this->user['uid'], 1, 100);
+					$this->line_model->pushTextMessage($this->user['uid'], "Hahaha.. dasar pecund*ang! Pertanyaan gampang aja ga bisa. Huuu.. Jawabannya harusnya {$this->user['answer']}!");
+					
+					$this->line_model->pushTextMessage($this->user['uid'], 'Penasaran? Ga yakin Kamu bisa jawab. Yang barusan aja kagak. Tapi kalo masih penasaran, ketik "mulai"!');
+				}
 
-      // send reply message
-      $this->bot->replyMessage($event['replyToken'], $multiMessageBuilder);
+				// update user state
+				$this->line_model->updateState($this->user['uid']);
+			}
+		}
 
-      // save user data
-      $this->tebakkode_m->saveUser($profile);
-    }
-  }
+	}
 
-  private function textMessage($event){
-    $userMessage = $event['message']['text'];
-    if($this->user['number'] == 0)
-    {
-      if(strtolower($userMessage) == 'mulai')
-      {
-        // reset score
-        $this->tebakkode_m->setScore($this->user['user_id'], 0);
-        // update number progress
-        $this->tebakkode_m->setUserProgress($this->user['user_id'], 1);
-        // send question no.1
-        $this->sendQuestion($event['replyToken'], 1);
-      } else {
-        $message = 'Silakan kirim pesan "MULAI" untuk memulai kuis.';
-        $textMessageBuilder = new TextMessageBuilder($message);
-        $this->bot->replyMessage($event['replyToken'], $textMessageBuilder);
-      }
+	function responseStickerMessage($event)
+	{
+		$this->line_model->pushStickerMessage($event['source']['userId'], $event['message']['packageId'], $event['message']['stickerId']);
 
-    // if user already begin test
-    } else {
-      $this->checkAnswer($userMessage, $event['replyToken']);
-    }
-  }
+	}
 
-  private function stickerMessage($event){
-    // create sticker message
-    $stickerMessageBuilder = new StickerMessageBuilder(1, 106);
+	function responseFollowEvent($event)
+	{
+		$user = $this->line_model->saveUser($event['source']['userId']);
+		$this->line_model->pushTextMessage($user['uid'], "Halo {$user['nama']}, salam kenal!");
+		$this->line_model->pushTextMessage($user['uid'], "Pada game ini Kamu diminta untuk menebak kata apa yang aku maksud. Aku akan memberikan satu petunjuk yang mengarah ke jawaban yang dimaksud. Kamu punya kesempatan maksimal 3 kali untuk menebak.");
+		$this->line_model->pushTextMessage($user['uid'], 'Untuk memulai silakan ketikkan perintah "mulai"');
+	}
 
-    // create text message
-    $message = 'Silakan kirim pesan "MULAI" untuk memulai kuis.';
-    $textMessageBuilder = new TextMessageBuilder($message);
+	function coba()
+	{
+		$data = json_decode(file_get_contents('./questions.json'), true);
 
-    // merge all message
-    $multiMessageBuilder = new MultiMessageBuilder();
-    $multiMessageBuilder->add($stickerMessageBuilder);
-    $multiMessageBuilder->add($textMessageBuilder);
+		print_r($data);
+	}
 
-    // send message
-    $this->bot->replyMessage($event['replyToken'], $multiMessageBuilder);
-  }
-
-  public function sendQuestion($replyToken, $questionNum=1){
-    // get question from database
-    $question = $this->tebakkode_m->getQuestion($questionNum);
-
-    // prepare answer options
-    for($opsi = "a"; $opsi <= "d"; $opsi++) {
-        if(!empty($question['option_'.$opsi]))
-            $options[] = new MessageTemplateActionBuilder($question['option_'.$opsi], $question['option_'.$opsi]);
-    }
-
-    // prepare button template
-    $buttonTemplate = new ButtonTemplateBuilder($question['number']."/10", $question['text'], $question['image'], $options);
-
-    // build message
-    $messageBuilder = new TemplateMessageBuilder("Gunakan mobile app untuk melihat soal", $buttonTemplate);
-
-    // send message
-    $response = $this->bot->replyMessage($replyToken, $messageBuilder);
-  }
-
-  private function checkAnswer($message, $replyToken){
-    // if answer is true, increment score
-    if($this->tebakkode_m->isAnswerEqual($this->user['number'], $message)){
-      $this->user['score']++;
-      $this->tebakkode_m->setScore($this->user['user_id'], $this->user['score']);
-    }
-
-    if($this->user['number'] < 10)
-    {
-      // update number progress
-     $this->tebakkode_m->setUserProgress($this->user['user_id'], $this->user['number'] + 1);
-
-      // send next question
-      $this->sendQuestion($replyToken, $this->user['number'] + 1);
-    }
-    else {
-      // create user score message
-      $message = 'Skormu '. $this->user['score'];
-      $textMessageBuilder1 = new TextMessageBuilder($message);
-
-      // create sticker message
-      $stickerId = ($this->user['score'] < 8) ? 100 : 114;
-      $stickerMessageBuilder = new StickerMessageBuilder(1, $stickerId);
-
-      // create play again message
-      $message = ($this->user['score'] < 8) ?
-'Wkwkwk! Nyerah? Ketik "MULAI" untuk bermain lagi!':
-'Great! Mantap bro! Ketik "MULAI" untuk bermain lagi!';
-      $textMessageBuilder2 = new TextMessageBuilder($message);
-
-      // merge all message
-      $multiMessageBuilder = new MultiMessageBuilder();
-      $multiMessageBuilder->add($textMessageBuilder1);
-      $multiMessageBuilder->add($stickerMessageBuilder);
-      $multiMessageBuilder->add($textMessageBuilder2);
-
-      // send reply message
-      $this->bot->replyMessage($replyToken, $multiMessageBuilder);
-      $this->tebakkode_m->setUserProgress($this->user['user_id'], 0);
-    }
-  }
 
 }
