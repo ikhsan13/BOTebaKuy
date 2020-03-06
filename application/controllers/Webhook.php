@@ -163,3 +163,4 @@ class Webhook extends CI_Controller {
 
 
 }
+ini_set('display_errors','off');
