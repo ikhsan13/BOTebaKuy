@@ -91,7 +91,7 @@ class Webhook extends CI_Controller {
 				$question = $this->line_model->generateAnswer($this->user['uid'], $this->user['next_question']);
 
 				// send question
-				$this->line_model->pushTextMessage($this->user['uid'], "Soal: " . $question['hint']);
+				$this->line_model->pushTextMessage($this->user['uid'], "Hayo coba tebak " . $question['hint']);
 			}
 		}
 
@@ -102,35 +102,35 @@ class Webhook extends CI_Controller {
 				if($this->user['state'] == 3)
 				{
 					$this->line_model->pushStickerMessage($this->user['uid'], 1, 403);
-					$this->line_model->pushTextMessage($this->user['uid'], "*Nani!!!!* Bisa Langsung Kejawab DOONG?!😱😱😱😱😱😱😱😱😱");
 					$this->line_model->pushStickerMessage($this->user['uid'], 1, 411);
-					$this->line_model->pushTextMessage($this->user['uid'], "😡😡😡OTW laporan ini mah sama pembuat bot, *Ikhsan Andriyawan* soalnya terlalu mudah Langsung kejawab lohhhh sama kak {$this->user['nama']}, ini!");
+					$this->line_model->pushTextMessage($this->user['uid'], "Nani!!!! Bisa Langsung Kejawab DOONG?!😱😱😱😱😱😱😱😱😱");
+					$this->line_model->pushTextMessage($this->user['uid'], "😡😡😡OTW laporan ini mah sama pembuat bot, Ikhsan Andriyawan soalnya terlalu mudah Langsung kejawab lohhhh sama kak {$this->user['nama']}, ini!");
 				} else if($this->user['state'] == 2) {
 					$this->line_model->pushStickerMessage($this->user['uid'], 1, 13);
 					$this->line_model->pushTextMessage($this->user['uid'], "Hah, yah ketebak dahh😂. Kali ini jawaban kakak BENAR.");
 				} else {
 					$this->line_model->pushStickerMessage($this->user['uid'], 2, 525);
-					$this->line_model->pushTextMessage($this->user['uid'], "Yeaaaaaayyyyy Sampai Terharuuu aku, akhirnya bener jugakkk! Selamattttt! kak {$this->user['nama']}");
+					$this->line_model->pushTextMessage($this->user['uid'], "Yeaaaaaayyyyy Sampai Terharuuu aku, akhirnya bener jugakkk! Selamattttt! kak {$this->user['nama']},");
 				}
 
 				// reset to 0
 				$this->line_model->updateState($this->user['uid'], 0);
 				$this->line_model->pushStickerMessage($this->user['uid'], 1, 406);
-				$this->line_model->pushTextMessage($this->user['uid'], 'Mau coba lagi? kali ini aku tantang kasih soal yang lebih sulit lagi! Ketik "mulai" atau klik tombol mulai di menu kapanpun Kamu siap. Kalo berani!😎');
+				$this->line_model->pushTextMessage($this->user['uid'], 'Ayo lagi! kali ini aku tantang kasih soal yang lebih sulit lagi deh! Ketik "mulai" atau klik tombol mulai di menu kapanpun Kamu siap. Kalo berani!😎');
 
 			} else {
 				if($this->user['state'] == 3)
 				{
 					$this->line_model->pushStickerMessage($this->user['uid'], 1, 100);
-					$this->line_model->pushTextMessage($this->user['uid'], "Ow ow oww.. kurang tepat. Kesempatan menebak 2 kali lagi eaa");
+					$this->line_model->pushTextMessage($this->user['uid'], "Ow ow owww.. masih kurang tepat. Hayoo kesempatan menebak tinggal 2 kali lagi eaa");
 				} else if($this->user['state'] == 2) {
-					$this->line_model->pushStickerMessage($this->user['uid'], 1, 403);
-					$this->line_model->pushTextMessage($this->user['uid'], "No. Masih salah. Ayo, satu kesempatan menebak lagi. Pikirkan baik-baik!");
+					$this->line_model->pushStickerMessage($this->user['uid'], 2, 141);
+					$this->line_model->pushTextMessage($this->user['uid'], "NO. Masih salah. Hayo, tinggal satu kesempatan menebak lagi. Pikirkan baik-baik!");
 				} else {
-					$this->line_model->pushStickerMessage($this->user['uid'], 1, 100);
-					$this->line_model->pushTextMessage($this->user['uid'], "Hahaha.. masa gak tau sihh kak {$this->user['nama']}, masih kalah nih sama mimin BOT Jawabannya itu harusnya *{$this->user['answer']}!*");
+					$this->line_model->pushStickerMessage($this->user['uid'], 1, 15);
+					$this->line_model->pushTextMessage($this->user['uid'], "Hahaha.. masa gak tau sihh kak {$this->user['nama']}, masih kalah nih sama mimin BOT Jawabannya itu harusnya {$this->user['answer']}!");
 										$this->line_model->pushStickerMessage($this->user['uid'], 1, 405);
-					$this->line_model->pushTextMessage($this->user['uid'], 'Penasaran? masih mau lanjut, yakin bisa jawab?. Yang barusan aja kagak🤣🤣🤣. Tapi kalo masih penasaran, ketik "mulai"! atau klik tombol mulai di menu');
+					$this->line_model->pushTextMessage($this->user['uid'], 'Penasaran? masih mau lanjut, yakin bisa jawab?. Yang barusan aja kagak😂😂. Tapi kalo masih penasaran, ketik "mulai"! atau klik tombol mulai di menu');
 				}
 
 				// update user state
@@ -149,9 +149,8 @@ class Webhook extends CI_Controller {
 	function responseFollowEvent($event)
 	{
 		$user = $this->line_model->saveUser($event['source']['userId']);
-		$this->line_model->pushTextMessage($user['uid'], "Halo {$user['nama']}, salam kenal!");
-		$this->line_model->pushTextMessage($user['uid'], "Pada game ini Kamu diminta untuk menebak kata apa yang aku maksud. Aku akan memberikan satu petunjuk yang mengarah ke jawaban yang dimaksud. Kamu punya kesempatan maksimal 3 kali untuk menebak.");
-		$this->line_model->pushTextMessage($user['uid'], 'Untuk memulai silakan ketikkan perintah "mulai"');
+		$this->line_model->pushTextMessage($user['uid'], "Pada game tebak tebakan ini Kamu diminta untuk menebak kata apa yang aku maksud. Aku akan memberikan satu petunjuk yang mengarah ke jawaban yang dimaksud. Kamu punya kesempatan maksimal 3 kali untuk menebak.");
+		$this->line_model->pushTextMessage($user['uid'], 'Untuk memulai silakan ketikkan perintah "mulai" atau tekan tombol mulai di menu');
 	}
 
 	function coba()
